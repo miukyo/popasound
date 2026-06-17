@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Popasound</title>
+    <script defer src="alpine.min.js"></script>
+    <link rel="icon" href="icons/logo.ico">
+    <link rel="stylesheet" href="output.css">
+    <style>
+        .hide-scrollbar {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-neutral-900 text-neutral-50 font-sans" x-data="app()" x-init="init()"
+    x-on:keydown.window="handleKeydown($event)">
+
+    <div class="fixed top-5 md:top-10 left-1/2 -translate-x-1/2 pointer-events-none select-none transition-all"
+        :class="nowPlaying.length > 0 ? 'scale-120 animate-wiggle-rotate' : ''">
+        <img src="icons/logo.png" alt="Logo" class="inline-block w-20">
+    </div>
+
+    <div class="mx-auto h-dvh pt-5 scrollbar-gutter-both">
+        <div
+            class="fixed bg-neutral-700/50 backdrop-blur-md border border-neutral-700 bottom-4 left-1/2 -translate-x-1/2 p-2 rounded-full flex items-center gap-3">
+            <div class="relative flex items-center font-semibold">
+                <div class="w-20 h-full absolute bg-rose-600 rounded-full top-0 -z-10 transition-all duration-300 ease-out-expo"
+                    :class="activeTab === 'library' ? 'left-0' : activeTab === 'search' ? 'left-20' : 'left-40'"></div>
+                <button x-on:click="switchTab('library')"
+                    :class="activeTab === 'library' ? 'text-neutral-900' : 'text-neutral-400'"
+                    class="w-20 h-10 text-sm cursor-pointer">Library</button>
+                <button x-on:click="switchTab('search')"
+                    :class="activeTab === 'search' ? 'text-neutral-900' : 'text-neutral-400'"
+                    class="w-20 h-10 text-sm cursor-pointer">Search</button>
+                <button x-on:click="switchTab('settings')"
+                    :class="activeTab === 'settings' ? 'text-neutral-900' : 'text-neutral-400'"
+                    class="w-20 h-10 text-sm cursor-pointer">Settings</button>
+            </div>
+
+        </div>
+
+        <div x-show="activeTab === 'search'" x-transition:enter="transition-all duration-300 ease-out-expo"
+            x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
+            x-transition:leave="transition-all duration-200 ease-out-expo"
+            x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-4"
+            class="fixed bg-neutral-700/50 backdrop-blur-md border border-neutral-700 bottom-20 left-1/2 -translate-x-1/2 p-2 rounded-full flex items-center gap-1">
+            <input type="text" x-model="searchQuery" placeholder="Search sounds..." x-on:keydown.enter="search()"
+                class="flex-1 p-3 w-60 h-12 text-base focus:outline-none">
+            <button x-on:click="search()"
+                class="size-12 bg-rose-600 hover:bg-rose-500 rounded-full text-neutral-900 grid place-items-center text-lg"><svg
+                    xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+                    <path d="M0 0h24v24H0z" fill="none" />
+                    <g fill="none" fill-rule="evenodd">
+                        <path
+                            d="m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z" />
+                        <path fill="currentColor"
+                            d="M10.5 2a8.5 8.5 0 1 0 5.262 15.176l3.652 3.652a1 1 0 0 0 1.414-1.414l-3.652-3.652A8.5 8.5 0 0 0 10.5 2M4 10.5a6.5 6.5 0 1 1 13 0a6.5 6.5 0 0 1-13 0" />
+                    </g>
+                </svg>
+            </button>
+        </div>
+
+        <div x-show="activeTab === 'settings'" x-transition:enter="transition-all duration-300 ease-out-expo"
+            x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" "
+            class=" px-4 pt-8 max-w-md mx-auto flex flex-col h-full justify-center -mt-20">
+            <div class="flex flex-col gap-3 p-4 bg-neutral-800 rounded-2xl">
+                <label class="text-sm font-medium opacity-50">Global Volume</label>
+                <div class="flex items-center gap-3">
+                    <div class="relative flex items-center flex-1 group">
+                        <input type="range" min="0" max="1" step="0.05" x-model.number="globalVolume"
+                            x-on:input="saveGlobalVolume()"
+                            :style="`background: linear-gradient(to right, #e11d48 0%, #e11d48 ${globalVolume * 100}%, var(--track-bg) ${globalVolume * 100}%, var(--track-bg) 100%)`"
+                            class="custom-slider w-full h-2 hover:h-4 ease-out-expo appearance-none rounded cursor-pointer outline-none transition-all [--track-bg:#3f3f46]">
+                    </div>
+                    <span class="text-xs font-medium text-zinc-400 min-w-[32px] tabular-nums"
+                        x-text="Math.round((globalVolume ?? 0) * 100) + '%'">
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3 p-4 bg-neutral-800 rounded-2xl mt-4">
+                <label class="text-sm font-medium opacity-50">Audio Device</label>
+                <select x-model="currentDevice" x-on:change="saveDevice()"
+                    class="w-full p-3 bg-neutral-700 rounded-xl text-sm cursor-pointer focus:outline-none">
+                    <option value="">Default Device</option>
+                    <template x-for="d in devices" :key="d.name">
+                        <option :value="d.name" x-text="d.name"></option>
+                    </template>
+                </select>
+            </div>
+        </div>
+
+        <div class="h-full overflow-x-auto hide-scrollbar select-none flex flex-col justify-center -mt-20"
+            :class="activeTab === 'settings' ? 'hidden' : ''" x-data="{ isDown: false, startX: 0, scrollLeft: 0 }"
+            x-on:wheel.prevent="$el.scrollLeft += $event.deltaY">
+
+            <div x-show="activeTab === 'search'" x-transition:enter="transition-all duration-300 ease-out-expo"
+                x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+                <div class="grid grid-rows-3 gap-2 grid-flow-col auto-cols-max justify-start m-4 w-max"
+                    x-show="sounds.length > 0">
+                    <template x-for="sound in sounds" :key="sound.id">
+                        <div class="flex flex-col gap-2 w-80 h-40 p-4 bg-neutral-800 rounded-2xl cursor-pointer hover:bg-neutral-700/50"
+                            :class="nowPlaying?.some(np => np.id === sound.title) ? 'bg-rose-600/20!' : ''"
+                            x-on:click="playUrl(sound.mp3, sound.title)">
+                            <span class="flex-1 line-clamp-2 text-xl leading-none font-bold"
+                                x-text="sound.title"></span>
+                            <div class="flex items-center justify-between">
+                                <button x-on:click.stop="saveSound(sound.id, sound.title, sound.url, sound.mp3)"
+                                    class="h-8 px-4 bg-neutral-700/50 rounded-full text-xs shrink-0 hover:bg-neutral-600">
+                                    Save
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <div x-show="sounds.length === 0 && !loading" class="w-full text-center opacity-50 py-10">
+                    No sounds found
+                </div>
+            </div>
+
+            <div x-show="activeTab === 'library'" x-transition:enter="transition-all duration-300 ease-out-expo"
+                x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+                <input type="file" accept="audio/mpeg,.mp3" id="mp3-upload-input" x-on:change="uploadMp3"
+                    class="hidden">
+
+                <div class="grid grid-rows-3 gap-2 grid-flow-col auto-cols-max justify-start m-4 w-max"
+                   >
+                    <template x-for="sound in librarySounds" :key="sound.id">
+                        <div class="flex flex-col gap-2 w-80 h-40 p-4 bg-neutral-800 rounded-2xl cursor-pointer hover:bg-neutral-700/50"
+                            :class="nowPlaying?.some(np => np.id === sound.id) ? 'bg-rose-600/20!' : ''"
+                            x-on:click="playLibrarySound(sound.id)">
+                            <span class="flex-1 line-clamp-2 text-xl leading-none font-bold"
+                                x-text="sound.title"></span>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-1 shrink-0">
+                                    <div class="relative flex items-center w-24 group">
+                                        <input type="range" min="0" max="1" step="0.05" x-model.number="sound.volume"
+                                            x-on:input="setVolume(sound.id, sound.volume)" x-on:click.stop
+                                            :style="`background: linear-gradient(to right, #e11d48 0%, #e11d48 ${sound.volume * 100}%, var(--track-bg, #e4e4e7) ${sound.volume * 100}%, var(--track-bg, #e4e4e7) 100%)`"
+                                            class="custom-slider w-full h-2 hover:h-4 ease-out-expo appearance-none rounded cursor-pointer outline-none transition-all [--track-bg:#e4e4e7] dark:[--track-bg:#3f3f46]">
+                                    </div>
+                                    <span
+                                        class="text-xs font-medium text-zinc-500 dark:text-zinc-400 min-w-[32px] tabular-nums"
+                                        x-text="Math.round((sound.volume ?? 0) * 100) + '%'">
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button x-show="getHotkey(sound.id)"
+                                        x-on:click.stop="unbindHotkey(getHotkey(sound.id).id)"
+                                        class="h-8 px-4 bg-neutral-700/50 rounded-full text-xs"
+                                        x-text="getHotkey(sound.id).display"></button>
+                                    <button x-show="!getHotkey(sound.id)"
+                                        x-on:click.stop="startHotkeyRecording(sound.id, sound.title)"
+                                        class="h-8 px-4 bg-neutral-700/50 rounded-full text-xs">Bind</button>
+                                    <button x-on:click.stop="deleteSound(sound.id)"
+                                        class="size-8 bg-rose-600 rounded-full grid place-items-center"><svg
+                                            xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"
+                                            viewBox="0 0 24 24">
+                                            <path d="M0 0h24v24H0z" fill="none" />
+                                            <g fill="none">
+                                                <path
+                                                    d="m12.594 23.258l-.012.002l-.071.035l-.02.004l-.014-.004l-.071-.036q-.016-.004-.024.006l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.016-.018m.264-.113l-.014.002l-.184.093l-.01.01l-.003.011l.018.43l.005.012l.008.008l.201.092q.019.005.029-.008l.004-.014l-.034-.614q-.005-.019-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.003-.011l.018-.43l-.003-.012l-.01-.01z" />
+                                                <path fill="currentColor"
+                                                    d="M15.535 6.344a1.5 1.5 0 0 1 2.122 2.12L14.12 12l3.536 3.536a1.5 1.5 0 0 1-2.121 2.121l-3.537-3.536l-3.535 3.536a1.5 1.5 0 1 1-2.12-2.121L9.877 12L6.343 8.465a1.5 1.5 0 0 1 2.121-2.121L12 9.879z" />
+                                            </g>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <div
+                        class="flex flex-col gap-2 w-80 h-40 p-4 bg-neutral-800 rounded-2xl cursor-pointer hover:bg-neutral-700/50" x-on:click="document.getElementById('mp3-upload-input').click()">
+                        <div class="grid place-items-center h-full text-neutral-400 text-lg font-semibold">
+                            + Upload MP3
+                        </div>
+
+                    </div>
+                </div>
+                <!-- <div x-show="librarySounds.length === 0 && !loading" class="w-full text-center opacity-50 py-10">
+                    Library is empty. Save sounds from Recent or Search tabs.</div> -->
+            </div>
+        </div>
+    </div>
+
+    <button x-on:click="openQrModal()"
+        class="hidden fixed top-5 right-5 z-40 size-10 bg-neutral-800/50 hover:bg-neutral-700/50 backdrop-blur-md border border-neutral-700 rounded-full md:grid place-items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <line x1="14" y1="14" x2="14" y2="17" />
+            <line x1="17" y1="14" x2="17" y2="17" />
+            <line x1="17" y1="17" x2="17" y2="21" />
+            <line x1="14" y1="21" x2="17" y2="21" />
+            <line x1="3" y1="21" x2="7" y2="21" />
+            <line x1="3" y1="17" x2="3" y2="21" />
+            <line x1="14" y1="3" x2="21" y2="3" />
+            <line x1="21" y1="3" x2="21" y2="10" />
+            <line x1="21" y1="14" x2="21" y2="21" />
+        </svg>
+    </button>
+
+    <div x-show="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        x-on:click.self="cancelHotkeyRecording()">
+        <div
+            class="bg-neutral-800/50 border border-neutral-800 backdrop-blur-md p-8 rounded-4xl text-center min-w-[300px]">
+            <h3 class="mb-2 text-lg font-semibold">Press a key combination</h3>
+            <p class="opacity-50 text-sm mb-4">Press the keys you want to bind. Esc to cancel</p>
+            <div class="text-2xl font-bold my-4 text-amber-600 min-h-[3rem]" x-text="hotkeyPreview"></div>
+        </div>
+    </div>
+
+    <div x-show="modalQrOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        x-on:click.self="modalQrOpen = false">
+        <div
+            class="bg-neutral-800/50 border border-neutral-800 backdrop-blur-md p-8 rounded-4xl text-center min-w-[300px]">
+            <h3 class="mb-2 text-lg font-semibold">Scan on your phone</h3>
+            <div id="qr-canvas" class="mx-auto grid place-items-center my-4"></div>
+            <p class="text-sm opacity-50" x-text="qrUrl"></p>
+        </div>
+    </div>
+
+    <div x-show="toast.show" x-transition:enter="transition-all duration-300 ease-out-expo"
+        x-transition:enter-start="opacity-0 -translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition-all duration-200 ease-out-expo"
+        x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-4"
+        class="fixed top-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-neutral-800/50 backdrop-blur-md border border-neutral-700 z-[60] text-sm">
+        <span x-text="toast.message"></span>
+    </div>
+    <script src="qr.min.js"></script>
+
+    </script>
+    <script>
+        function app() {
+            return {
+                apiBase: '',
+                activeTab: 'library',
+                globalVolume: 1.0,
+                sounds: [],
+                librarySounds: [],
+                hotkeys: [],
+                devices: [],
+                currentDevice: '',
+                recordingHotkey: null,
+                recordingSoundTitle: '',
+                hotkeyPreview: '...',
+                modalOpen: false,
+                modalQrOpen: false,
+                qrUrl: '',
+                toast: { show: false, message: '', type: '' },
+                searchQuery: '',
+                loading: false,
+                nowPlaying: [],
+                _volTimers: {},
+
+                init() {
+                    this.loadSettings();
+                    this.loadRecent();
+                    this.loadLibrary();
+                    this.pollNowPlaying();
+                },
+
+                async pollNowPlaying() {
+                    while (true) {
+                        try {
+                            const r = await fetch(this.apiBase + '/api/now-playing');
+                            const j = await r.json();
+                            this.nowPlaying = j.data || [];
+                        } catch (e) { }
+                        await new Promise(r => setTimeout(r, 500));
+                    }
+                },
+
+                switchTab(tab) {
+                    this.activeTab = tab;
+                    if (tab === 'recent') this.loadRecent();
+                    else if (tab === 'library' || tab === 'settings') { this.loadDevices(); if (tab === 'library') this.loadLibrary(); }
+                },
+
+                async loadRecent() {
+                    this.loading = true;
+                    this.sounds = [];
+                    try {
+                        const r = await fetch(this.apiBase + '/api/recent');
+                        const j = await r.json();
+                        this.sounds = j.data || [];
+                    } catch (e) { }
+                    this.loading = false;
+                },
+
+                async search() {
+                    const q = this.searchQuery.trim();
+                    if (!q) return;
+                    this.loading = true;
+                    this.sounds = [];
+                    try {
+                        const r = await fetch(this.apiBase + '/api/search?q=' + encodeURIComponent(q));
+                        const j = await r.json();
+                        this.sounds = j.data || [];
+                    } catch (e) { }
+                    this.loading = false;
+                },
+
+                async loadLibrary() {
+                    this.loading = true;
+                    this.librarySounds = [];
+                    try {
+                        const [res, hotRes] = await Promise.all([
+                            fetch(this.apiBase + '/api/library'),
+                            fetch(this.apiBase + '/api/hotkey/list')
+                        ]);
+                        const json = await res.json();
+                        const hotJson = await hotRes.json();
+                        this.hotkeys = hotJson.data || [];
+                        this.librarySounds = (json.data || []).map(s => ({ ...s, volume: s.volume || 1.0 }));
+                    } catch (e) { }
+                    this.loading = false;
+                },
+
+                async loadDevices() {
+                    try {
+                        const r = await fetch(this.apiBase + '/api/devices');
+                        const j = await r.json();
+                        if (j.status === '200' && j.data) {
+                            this.devices = j.data;
+                        }
+                    } catch (e) { }
+                },
+
+                async loadSettings() {
+                    try {
+                        const r = await fetch(this.apiBase + '/api/settings');
+                        const j = await r.json();
+                        if (j.status === '200' && j.data) {
+                            this.globalVolume = j.data.global_volume;
+                            this.currentDevice = j.data.device_name || '';
+                        }
+                    } catch (e) { }
+                },
+
+                saveGlobalVolume() {
+                    if (this._volTimer) clearTimeout(this._volTimer);
+                    this._volTimer = setTimeout(() => {
+                        fetch(this.apiBase + '/api/settings', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ global_volume: this.globalVolume, device_name: this.currentDevice || null })
+                        }).catch(() => { });
+                    }, 300);
+                },
+
+                saveDevice() {
+                    fetch(this.apiBase + '/api/settings', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ global_volume: this.globalVolume, device_name: this.currentDevice || null })
+                    }).then(r => r.json()).then(j => {
+                        if (j.status === '200') this.showToast('Audio device updated', 'success');
+                    }).catch(() => this.showToast('Failed to update device', 'error'));
+                },
+
+                playUrl(url, title) {
+                    fetch(this.apiBase + '/api/play-url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url, title: title || '' })
+                    }).catch(() => { });
+                },
+
+                playLibrarySound(id) {
+                    fetch(this.apiBase + '/api/library/' + encodeURIComponent(id) + '/play', { method: 'POST' }).catch(() => { });
+                },
+
+                async uploadMp3(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    let title = file.name.replace(/\.[^/.]+$/, '');
+                    title = prompt('Sound title:', title);
+                    if (!title) { event.target.value = ''; return; }
+                    try {
+                        const r = await fetch(this.apiBase + '/api/library/upload?title=' + encodeURIComponent(title), {
+                            method: 'POST',
+                            body: file
+                        });
+                        const j = await r.json();
+                        if (j.status === '200') {
+                            this.showToast('Uploaded to library', 'success');
+                            this.loadLibrary();
+                        } else {
+                            this.showToast(j.message || 'Failed to upload', 'error');
+                        }
+                    } catch (e) {
+                        this.showToast('Failed to upload', 'error');
+                    }
+                    event.target.value = '';
+                },
+
+                async saveSound(id, title, url, mp3) {
+                    try {
+                        const r = await fetch(this.apiBase + '/api/library/save', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id, title, url, mp3_url: mp3 })
+                        });
+                        const j = await r.json();
+                        if (j.status === '200') this.showToast('Saved to library', 'success');
+                        else this.showToast(j.message || 'Failed to save', 'error');
+                    } catch (e) {
+                        this.showToast('Failed to save', 'error');
+                    }
+                },
+
+                deleteSound(id) {
+                    if (!confirm('Remove this sound from library?')) return;
+                    fetch(this.apiBase + '/api/library/' + encodeURIComponent(id), { method: 'DELETE' })
+                        .then(r => r.json())
+                        .then(j => {
+                            if (j.status === '200') {
+                                this.showToast('Removed from library', 'success');
+                                this.loadLibrary();
+                            } else {
+                                this.showToast(j.message || 'Failed to delete', 'error');
+                            }
+                        })
+                        .catch(() => this.showToast('Failed to delete', 'error'));
+                },
+
+                setVolume(soundId, vol) {
+                    if (this._volTimers[soundId]) clearTimeout(this._volTimers[soundId]);
+                    this._volTimers[soundId] = setTimeout(() => {
+                        fetch(this.apiBase + '/api/library/' + encodeURIComponent(soundId) + '/volume', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ volume: vol })
+                        }).catch(() => { });
+                    }, 200);
+                },
+
+                getHotkey(soundId) {
+                    return this.hotkeys.find(h => h.sound_id === soundId);
+                },
+
+                startHotkeyRecording(soundId, soundTitle) {
+                    this.recordingHotkey = soundId;
+                    this.recordingSoundTitle = soundTitle;
+                    this.hotkeyPreview = '...';
+                    this.modalOpen = true;
+                },
+
+                openQrModal() {
+                    fetch(this.apiBase + '/api/local-ip').then(r => r.json()).then(j => {
+                        this.qrUrl = 'http://' + j.data + ':6677';
+                        this.modalQrOpen = true;
+                        setTimeout(() => {
+                            document.getElementById("qr-canvas").innerHTML = '';
+                            new QRCode(document.getElementById("qr-canvas"), {
+                                text: this.qrUrl,
+                                width: 200,
+                                height: 200,
+                                colorDark: "#e11d48",
+                                colorLight: "#00000000",
+                            });
+                        }, 100);
+                    }).catch(() => {
+                        this.showToast('Could not detect network IP', 'error');
+                    });
+                },
+
+                cancelHotkeyRecording() {
+                    this.recordingHotkey = null;
+                    this.recordingSoundTitle = '';
+                    this.modalOpen = false;
+                },
+
+                handleKeydown(e) {
+                    if (!this.recordingHotkey) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    let mods = [];
+                    if (e.ctrlKey) mods.push('Ctrl');
+                    if (e.shiftKey) mods.push('Shift');
+                    if (e.altKey) mods.push('Alt');
+                    if (e.metaKey) mods.push('Meta');
+
+                    if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+
+                    const key = e.code;
+                    const keyDisplay = (() => {
+                        if (key.startsWith('Key')) return key.slice(3);
+                        if (key.startsWith('Digit')) return key.slice(5);
+                        if (key === 'Space') return 'Space';
+                        if (key.startsWith('Arrow')) return key.slice(5);
+                        return key;
+                    })();
+                    const modifiers = mods.join('+');
+                    const display = [...mods, keyDisplay].join('+');
+
+                    this.hotkeyPreview = display;
+
+                    fetch(this.apiBase + '/api/hotkey/bind', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sound_id: this.recordingHotkey,
+                            sound_title: this.recordingSoundTitle,
+                            modifiers: modifiers,
+                            key: key,
+                            display: display
+                        })
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.status === '200') {
+                                this.showToast('Hotkey bound: ' + display, 'success');
+                                this.modalOpen = false;
+                                if (this.activeTab === 'library') this.loadLibrary();
+                            } else {
+                                this.showToast(data.message || 'Failed to bind hotkey', 'error');
+                                this.modalOpen = false;
+                            }
+                        })
+                        .catch(() => {
+                            this.showToast('Failed to bind hotkey', 'error');
+                            this.modalOpen = false;
+                        });
+
+                    this.recordingHotkey = null;
+                },
+
+                unbindHotkey(hotkeyId) {
+                    if (!confirm('Unbind this hotkey?')) return;
+                    fetch(this.apiBase + '/api/hotkey/' + encodeURIComponent(hotkeyId), { method: 'DELETE' })
+                        .then(r => r.json())
+                        .then(j => {
+                            if (j.status === '200') {
+                                this.showToast('Hotkey unbound', 'success');
+                                if (this.activeTab === 'library') this.loadLibrary();
+                            } else {
+                                this.showToast(j.message || 'Failed to unbind', 'error');
+                            }
+                        })
+                        .catch(() => this.showToast('Failed to unbind', 'error'));
+                },
+
+                showToast(msg, type) {
+                    if (this._toastTimer) clearTimeout(this._toastTimer);
+                    this.toast = { show: true, message: msg, type: type || '' };
+                    this._toastTimer = setTimeout(() => {
+                        this.toast.show = false;
+                    }, 3000);
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

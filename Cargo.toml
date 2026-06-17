@@ -1,0 +1,28 @@
+[package]
+name = "popasound"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rocket = { version = "0.5.1", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+tray-icon = "0.24.1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+scraper = "0.22"
+regex = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+open = "5"
+winit = "0.30.13"
+rodio = "0.22.2"
+rdev = "0.5.3"
+serde_json = "1"
+rocket_cors = "0.6.0"
+local-ip-address = "0.6"
+muda = "0.19"
+image = "0.25"
+windows-sys = { version = "0.61", features = ["Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader"] }
+rust-embed = "8"
+dirs = "6"
+
+[build-dependencies]
+embed-resource = "2"

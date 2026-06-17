@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+
+@font-face {
+    font-family: 'DM Sans Variable';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 100 1000;
+    src: url(DMSans.ttf) format('woff2-variations');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@theme {
+    --font-sans: 'DM Sans Variable', sans-serif;
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+    --animate-fade-in-from-top: fade-in-from-top 0.3s var(--ease-out-expo) forwards;
+    --animate-fade-in-from-bottom: fade-in-from-bottom 0.3s var(--ease-out-expo) forwards;
+    --animate-wiggle-rotate: wiggle-rotate 1s linear infinite;
+}
+
+@keyframes fade-in-from-top {
+    0% {
+        transform: translateY(-10px) scale(0);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes fade-in-from-bottom {
+    0% {
+        transform: translateY(10px) scale(0);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes wiggle-rotate {
+    0%, 100% { transform: rotate(0deg); }
+    15% { transform: rotate(3deg); }
+    30% { transform: rotate(-3deg); }
+    45% { transform: rotate(3deg); }
+    60% { transform: rotate(-3deg); }
+    75% { transform: rotate(3deg); }
+    90% { transform: rotate(-3deg); }
+  }
+
+@layer components {
+    .custom-slider {
+
+        /* Style the Webkit (Chrome, Safari, Edge, Opera) Thumb */
+        &::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            @apply opacity-0 size-4;
+        }
+
+        /* Style the Mozilla (Firefox) Thumb */
+        &::-moz-range-thumb {
+            @apply opacity-0 size-4;
+        }
+
+    }
+}
+
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
