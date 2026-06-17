@@ -13,7 +13,15 @@ Popasound is a desktop app with an embedded web server and system tray icon. Bro
 - **Now‑playing highlights** — currently playing sounds are highlighted in the UI
 - **QR code** — scan to open the web UI on your phone
 - **Single binary** — all static assets embedded, no external files needed
+- **Super Lightweight** — using only 3-4MB memory usage
 
 ## Usage
 
 Run the binary — a tray icon appears. Double click the tray icon or open `http://localhost:6677` in your browser (or scan the QR code from the web UI).
+
+## Screenshots
+
+![Screenshot 1](ss1.png)
+![Screenshot 2](ss2.png)
+![Screenshot 3](ss3.png)
+
