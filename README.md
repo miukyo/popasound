@@ -17,7 +17,7 @@ Popasound is a desktop app with an embedded web server and system tray icon. Bro
 
 ## Usage
 
-Run the binary — a tray icon appears. Double click the tray icon or open `http://localhost:6677` in your browser (or scan the QR code from the web UI).
+Run the binary — a tray icon appears. Click on the tray icon or open `http://localhost:6677` in your browser (or scan the QR code from the web UI).
 
 ## Screenshots
 
